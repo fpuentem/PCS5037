@@ -1,0 +1,108 @@
+#+TITLE: METODOLOGIA DE PESQUISA PARA CIÊNCIA DA COMPUTAÇÃO
+#+SUBTITLE: Capítulo 4 & 5
+#+AUTHOR: Fabricio Puente Mansilla
+#+EMAIL: fpuentem@usp.br
+#+DATE: <2025-09-30 Tue>
+
+* Capítulo 4: Tipos de Pesquisa em Ciência da Computação
+
+Este capítulo é a nossa "caixa de ferramentas metodológicas". Depois
+de definirmos o problema e a hipótese, precisamos escolher o plano de
+ataque. O livro detalha os principais Tipos de Pesquisa aplicáveis à
+nossa área, que é um campo tão híbrido. Ele separa claramente as
+pesquisas em categorias como: Pesquisa Experimental (a que a gente
+mais associa à ciência, controlando variáveis para provar causalidade,
+ideal para comparar o desempenho de algoritmos ou arquiteturas),
+Pesquisa de Levantamento (Survey) (para entender o comportamento, as
+atitudes ou as opiniões de um grupo, fundamental em Engenharia de
+Software e IHC), Estudo de Caso (análise aprofundada de um fenômeno em
+seu contexto real, por exemplo, como uma empresa migrou para a nuvem),
+e a Pesquisa de Desenvolvimento e Avaliação (Design Science
+Research). Esta última é especialmente relevante para nós, já que ela
+foca na criação e avaliação de um artefato (um modelo, um algoritmo,
+um sistema) para resolver um problema. O autor enfatiza que a escolha
+do tipo de pesquisa é determinada pelos objetivos e pela natureza do
+problema que formulamos. Não existe o "melhor" tipo, mas sim o mais
+apropriado para responder à pergunta de pesquisa.
+
+** Comentário Pessoal
+
+A parte mais reconfortante desse capítulo é ver que muita coisa que a
+gente faz na engenharia tem um nome acadêmico. A gente vive fazendo
+mini-experimentos no trabalho: "Se eu trocar o framework de frontend A
+pelo B, a taxa de conversão aumenta?". A diferença é que o livro nos
+ensina a fazer isso com rigor. Em vez de só observar a taxa de
+conversão subir, a gente aprende a controlar variáveis externas (o
+tráfego, o horário, a sazonalidade) para que o resultado possa ser
+atribuído apenas à nossa mudança (o novo framework).
+
+O tipo de pesquisa que mais me chamou a atenção, por causa da minha
+formação em software, foi o Design Science Research (DSR). Sair da
+academia criando um artefato — um modelo, um método, um algoritmo — e
+provar que ele tem utilidade e novidade é a ponte perfeita entre o
+Mestrado e a Engenharia. O DSR legitima a nossa habilidade de
+construir coisas, desde que a gente siga o processo de justificar a
+necessidade (a lacuna), projetar, desenvolver e, crucialmente, avaliar
+o artefato rigorosamente. É o caminho para quem quer que o trabalho no
+Mestrado resulte em algo tangível e útil para a comunidade.
+
+O livro também me fez pensar na importância do Estudo de Caso. Na
+minha experiência com sistemas, a gente tem insights valiosos sobre
+por que um projeto de Engenharia de Eletricidade deu errado ou por que
+um novo sistema de gerenciamento de dados falhou. Se a gente
+documentar esses processos de forma acadêmica, usando o Estudo de
+Caso, podemos gerar conhecimento que ajude outras equipes a evitar os
+mesmos erros. O valor não está só em construir algo novo, mas em
+analisar o mundo real e entender o porquê as coisas funcionam (ou não
+funcionam) como deveriam. É um lembrete de que a metodologia é a lente
+que transforma a experiência prática em conhecimento científico
+validado.
+
+* Capítulo 5: Maturidade em Pesquisa
+
+Este capítulo introduz um conceito fundamental para avaliar a
+qualidade e o impacto do trabalho acadêmico: a Maturidade em
+Pesquisa. O livro argumenta que, para uma área se consolidar
+cientificamente, ela precisa ir além de simplesmente construir
+protótipos e demos. A maturidade é atingida quando a pesquisa começa a
+gerar Teorias, Modelos e Princípios que são validados de forma
+consistente e que podem ser replicados em diferentes contextos. O
+autor pode usar frameworks, talvez inspirados em conceitos de
+Engenharia de Software como o CMMI (Capability Maturity Model
+Integration), para classificar onde uma determinada área ou projeto se
+encontra — indo do nível mais baixo (simples descrição ou intuição)
+até o nível mais alto (estabelecimento de leis e teorias robustas). A
+grande lição é que o Mestrado deve contribuir para elevar o nível de
+maturidade da área, não apenas resolver um problema pontual. É um
+convite a pensar no legado do seu trabalho.
+
+** Comentário Pessoal
+
+Essa ideia de Maturidade em Pesquisa me remete instantaneamente aos
+modelos de maturidade que a gente usa no mundo corporativo, como o
+CMMI ou até o TRL (Technology Readiness Level) que se vê na engenharia
+de hardware e espacial. No TRL, você começa com a ideia (nível 1) e
+termina com o sistema testado em ambiente operacional (nível 9). O
+livro faz uma analogia com isso, mas para o conhecimento.
+
+Na minha cabeça de engenheiro, muitas vezes, a gente para no que o
+livro chamaria de nível baixo de maturidade: construímos um sistema
+super legal, que funciona perfeitamente, e publicamos um artigo
+descrevendo-o (um "artefato"). Mas o livro nos desafia a ir além: qual
+princípio geral esse sistema provou? Qual modelo pode ser extraído
+dele para que outros pesquisadores não precisem começar do zero? Isso
+exige que a gente não apenas crie, mas que teorize sobre o que foi
+criado.
+
+A Maturidade em Pesquisa é importante porque nos força a ter ambição
+científica. Não basta dizer que seu algoritmo é 10% mais rápido; você
+precisa formular uma teoria sobre por que ele é mais rápido, em quais
+condições, e como essa teoria se relaciona com o conhecimento já
+estabelecido. É como se, na engenharia, a gente não só construísse uma
+turbina elétrica mais eficiente, mas também escrevesse a nova lei da
+termodinâmica que explica o aumento da eficiência. É a busca pela
+generalização. A gente precisa sair da nossa bolha de código
+específico e buscar a universalidade do conhecimento. É um conceito
+que coloca o Mestrado na perspectiva correta: não é apenas mais um
+projeto de engenharia, é a nossa contribuição formal e madura para a
+fundação da Ciência da Computação.

@@ -1,0 +1,99 @@
+% Created 2025-10-01 Wed 00:21
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\author{Fabricio Puente Mansilla}
+\date{\textit{<2025-09-30 Tue>}}
+\title{Metodo de Pesquisa e Estilo de Pesquisa}
+\hypersetup{
+ pdfauthor={Fabricio Puente Mansilla},
+ pdftitle={Metodo de Pesquisa e Estilo de Pesquisa},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 30.1 (Org mode 9.7.11)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Estilo de Pesquisa e Nível de Maturidade}
+\label{sec:org1a3327f}
+
+\subsection{Estilo de Pesquisa (Tipos de Pesquisa, Cap. 4.2)}
+\label{sec:org89ae764}
+
+O trabalho proposto deve adotar um estilo misto, combinando a Pesquisa
+de Design com a Pesquisa Explicativa.  A Pesquisa de Design (Capítulo
+8.5) é adequada porque o objetivo final é propor um novo artefato ou
+método – neste caso, um conjunto de otimizações de compiler e runtime
+que determinam "como as coisas poderiam ser".8 O artefato (o código
+das otimizações) é a materialização do conhecimento gerado.  A
+Pesquisa Explicativa (Capítulo 4.2) é essencial para garantir o rigor
+científico. Não basta construir o artefato; é preciso explicar a causa
+(a otimização introduzida no LLVM) que leva ao efeito (o aumento da
+eficiência energética). A pesquisa explicativa busca os fatores
+determinantes dos dados, indo além da simples descrição ou do
+levantamento de opiniões.8 A relação de causalidade entre a
+modificação do compiler e a mudança no consumo de Joules/GFLOPs é a
+contribuição fundamental para a Ciência da Computação.
+\subsection{Nível de Maturidade Científica (Cap. 5)}
+\label{sec:orgea7a355}
+
+Um trabalho de Mestrado exige uma contribuição significativa para o
+avanço do conhecimento, não sendo suficiente a mera apresentação de um
+produto ou protótipo O nível de maturidade mais apropriado para este
+projeto é: Nível 5.4: Apresentação de Algo Reconhecidamente Melhor.
+Este nível exige que a nova abordagem proposta seja comparada,
+quantitativamente, com outras soluções existentes no estado da arte.
+No contexto deste Mestrado, a abordagem proposta (LLVM otimizado) deve
+ser confrontada com a baseline (LLVM/OpenMP padrão) usando métricas
+objetivas de eficiência energética.  A adesão a este nível de
+maturidade evita a armadilha do aluno que compara seu trabalho apenas
+com suas versões anteriores, ou que escolhe uma ferramenta a priori.
+Para avançar o estado da arte, o trabalho deve usar um teste-padrão
+(ou um benchmark objetivo e replicável) e demonstrar que a solução
+proposta apresenta vantagens claras em relação à solução dominante no
+mercado ou na academia.
+\section{Rigor Metodológico: Definições Operacionais e Variáveis}
+\label{sec:org2dc2544}
+
+O pilar do rigor científico é a objetividade, que se
+materializa na definição clara e objetiva dos fenômenos a serem
+observados. Para um sistema de low-power, termos como "melhor
+desempenho" ou "maior eficiência" são subjetivos (definições
+constitutivas) e devem ser transformados em Definições Operacionais.
+\subsection{Variáveis de Pesquisa}
+\label{sec:org5e1cd17}
+
+O experimento de causalidade requer a identificação de variáveis
+dependentes e independentes: Variável Independente (Manipulada): A
+intervenção (otimização) aplicada ao pipeline de compilação
+LLVM/OpenMP. Esta é uma variável Categórica Dicotômica, onde 0
+representa a baseline e 1 representa a otimização proposta. Variáveis
+Dependentes (Observadas): Latência de offload (ciclos de clock),
+Desempenho (speedup) e, criticamente, Eficiência Energética.
+\subsection{Definição Operacional da Eficiência Energética}
+\label{sec:orgfe65481}
+
+A métrica deve refletir o objetivo central da plataforma PULP, que é a
+energia. A Eficiência Energética é operacionalmente definida pela
+razão entre a energia total consumida (Joules, medida com ferramentas
+de profiling no cluster RISC-V) e o trabalho útil realizado (Giga
+Operações de Ponto Flutuante - GFLOPs).  Essa definição transforma o
+constructo "ser eficiente" em uma Variável Contínua mensurável
+(Joules/GFLOPs). Ao focar na energia total por operação útil, a
+pesquisa garante que o ganho não seja apenas em velocidade, mas que a
+otimização de latência realmente contribua para a premissa low-power
+do hardware.
+\end{document}
