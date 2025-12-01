@@ -1,0 +1,504 @@
+#+TITLE:  Otimização de Compilador Baseada em LLVM para Tiling de Datos e Coerencia de Memoria Local em Arquiteturas de Ultrabaixa Potência
+#+AUTHOR: Fabricio R. Puente Mansilla
+#+DATE: <2025-11-29 Sat>
+#+bibliography: references.bib
+#+cite_export: csl abnt-nbr-6023-2018-nbr-10520-2023-–-citacão-autor-data.csl
+#+STARTUP: overview
+
+* Introdução
+
+O avanço recente das aplicações de inteligência artificial embarcada,
+sistemas IoT e dispositivos autônomos tem intensificado a necessidade
+por arquiteturas computacionais capazes de oferecer alto desempenho
+aliado a consumo energético extremamente reduzido. Nesse cenário,
+arquiteturas *Ultra-Low-Power (ULP)* tornam-se essenciais para
+viabilizar aplicações que operam sob severas restrições de energia,
+como wearables, sensores inteligentes, sistemas de controle
+distribuído e aceleradores de machine learning em *edge devices*.
+
+A plataforma *PULP (Parallel Ultra-Low-Power)*, desenvolvida por meio
+de colaborações entre a ETH Zürich e a Universidade de Bolonha,
+insere-se exatamente nesse espaço tecnológico. Baseada na arquitetura
+*RISC-V* e concebida para suportar paralelismo massivo a baixo custo
+energético, a plataforma PULP incorpora um conjunto de características
+arquiteturais — como clusters multi-core, memória local de baixa
+latência (TCDM/SPM) e mecanismos otimizados de comunicação — que lhe
+permitem atingir excelente relação desempenho-por-watt.
+
+Entretanto, para que tais vantagens arquiteturais produzam impacto
+real no nível da aplicação, torna-se essencial que o *ambiente de
+software* (incluindo compiladores, runtimes e modelos de paralelismo)
+seja capaz de explorar eficientemente essas propriedades de
+hardware. É justamente nessa interseção entre arquitetura e software
+que surgem os principais desafios técnicos contemporâneos.
+
+Embora o *OpenMP* seja amplamente adotado como modelo de programação
+de alto nível para paralelismo devido à sua portabilidade e
+simplicidade, sua utilização em plataformas ULP heterogêneas — como
+PULP — enfrenta obstáculos estruturais. Em particular, o mecanismo de
+*task offloading*, responsável por transferir tarefas do host para o
+cluster, introduz um *overhead considerável de comunicação e
+sincronização*.
+
+Estudos realizados em plataformas RISC-V/PULP têm apontado que esse
+custo pode atingir valores na ordem de *dezenas de milhares de ciclos
+de clock*, chegando a aproximadamente *98.000 ciclos* mesmo para
+regiões OpenMP relativamente simples. Em um ambiente de ultrabaixa
+potência, custos dessa magnitude podem: reduzir drasticamente o
+*speedup* potencial do paralelismo, comprometer a eficiência energética
+global,e, nos casos mais críticos, tornar o *offloading* improdutivo em
+comparação com uma execução sequencial.
+
+Assim, evidencia-se uma tensão central entre: a conveniência do modelo
+de programação OpenMP, e a necessidade de eficiência extrema em
+ambientes ULP.
+
+Esse contraste revela uma lacuna científica e tecnológica ainda pouco
+explorada na literatura: *a integração entre otimizações de compilador
+e a localidade de memória específica da arquitetura PULP*,
+especialmente no que diz respeito à utilização da *TCDM (Tightly
+Coupled Data Memory)*, que oferece latência significativamente
+inferior à memória externa.
+
+A solução dominante (LLVM + OpenMP padrão) *não incorpora mecanismos
+suficientemente refinados* para explorar a organização da memória
+local do cluster PULP. O pipeline de compilação atual tampouco realiza
+estratégias de *data tiling* ou coerência fina entre host e TCDM,
+resultando em: transferência excessiva de dados, sincronizações
+desnecessárias, uso subótimo da memória local, e overhead elevado na
+ativação do cluster.
+
+Dessa forma, torna-se evidente uma oportunidade de pesquisa:
+investigar até que ponto a introdução de passes de otimização no
+compilador, aliados a modificações no runtime do OpenMP, pode reduzir
+de maneira mensurável o overhead do offloading — e, portanto,
+melhorar a eficiência energética end-to-end do sistema.
+
+Essa lacuna apresenta relevância imediata tanto para a comunidade de
+arquitetura computacional quanto para a comunidade de compiladores,
+refletindo o caráter interdisciplinar do presente projeto.
+
+A pesquisa é guiada pela seguinte hipótese:
+
+A introdução de passes de otimização no LLVM voltados para o
+refinamento do *data tiling* e para a coerência de memória entre o host
+RISC-V e o cluster PULP reduzirá significativamente a latência de
+offloading e aumentará a eficiência energética global, em comparação
+com a configuração padrão do LLVM/OpenMP.
+
+Essa hipótese será avaliada experimentalmente por meio de métricas
+objetivas e testes estatísticos.
+
+* Objetivos
+
+** Objetivo Geral
+
+Demonstrar que otimizações específicas no pipeline de compilação LLVM
+(e seu runtime OpenMP) podem ser desenhadas para explorar as
+características arquiteturais do cluster PULP (como localidade de
+memória TCDM/SPM), mitigando o overhead de offloading (latência de
+comunicação e sincronização), resultando em um aumento demonstrável da
+eficiência energética total do sistema.
+
+** Objetivos Específicos
+
+1. Analisar o gargalo de desempenho e o overhead de comunicação e
+   sincronização no runtime OpenMP padrão (baseline) na arquitetura
+   PULP, para quantificar as limitações na exploração da memória local
+   TCDM/SPM.
+2. Propor e implementar novos passes de otimização no compilador LLVM,
+   especificamente desenhados para refinar o data tiling e os
+   mecanismos de coerência de dados entre o host RISC-V e o cluster
+   PULP, priorizando a localidade na TCDM/SPM.
+3. Quantificar e comparar a latência de offload (medida em Ciclos de
+   Clock) e a eficiência energética (definida como Joules/GFLOPs) do
+   código gerado pelo compilador otimizado em relação à linha de base
+   (baseline) do LLVM/OpenMP padrão, utilizando benchmarks
+   representativos em arquiteturas PULP.
+4. Apresentar as contribuições científicas e as lições aprendidas
+   (insights) resultantes do trabalho, para o avanço da área de design
+   de compiladores low-power e arquiteturas RISC-V heterogêneas.
+
+* Justificativas e Motivação Científica
+
+A justificativa para a realização desta pesquisa se baseia na
+interseção crítica entre o desenho de hardware de ultrabaixa potência e
+a necessidade de ferramentas de software que possam explorar
+eficientemente suas capacidades arquiteturais.
+
+** Justificativa da Relevância do Problema
+
+O panorama atual é marcado pela demanda por plataformas de
+processamento que combinem alto desempenho com consumo de energia
+minimizado (Ultra-Low-Power). A arquitetura RISC-V PULP (Parallel
+Ultra-Low-Power) é reconhecida como uma solução de vanguarda nesse
+domínio. Contudo, a eficiência energética máxima não é uma
+característica intrínseca apenas do hardware, mas depende criticamente
+da abstração de software e da otimização do compilador.  O problema
+central reside no overhead significativo de comunicação e
+sincronização gerado por modelos de programação de alto nível, como o
+OpenMP, quando implementados no runtime padrão LLVM para o offloading
+de tarefas para o cluster PULP. Este overhead ineficiente de
+comunicação anula a vantagem energética inerente ao hardware de
+ultrabaixa potência.  É fundamental que o compilador lide de forma
+otimizada com a memória local TCDM (Tightly Coupled Data Memory)/SPM
+(Scratchpad Memory) para garantir a localidade de dados e minimizar as
+transferências e a latência de acesso, fatores que consomem ciclos de
+clock e energia. A ausência de uma abordagem sistemática e específica
+no toolchain LLVM padrão para resolver esta limitação configura uma
+lacuna tecnológica que compromete a viabilidade e a produtividade do
+paralelismo em sistemas embarcados de energia crítica.
+
+** Justificativa da Hipótese
+
+A hipótese central deste trabalho — que otimizações de
+compilador baseadas em LLVM podem reduzir significativamente o
+overhead de offloading ao otimizar o data tiling e a coerência de
+memória local — se justifica por três fatores:
+
+1. Abordagem Direta à Causa Raiz: Em vez de focar na otimização de
+   kernels específicos ou na reescrita manual de código (soluções
+   pontuais), a pesquisa propõe uma intervenção direta no pipeline de
+   compilação LLVM. O design de novos passes de otimização permitirá a
+   inserção automática de regras para refinar o data tiling e o
+   gerenciamento de coerência de memória entre o host RISC-V e o
+   TCDM/SPM.
+
+2. Contribuição Original e Mensurável: Ao demonstrar que a
+   otimização proposta oferece um aumento mensurável da eficiência
+   energética (Joules/Operação) em comparação com a baseline
+   LLVM/OpenMP padrão, este trabalho se posiciona para gerar uma
+   contribuição original e relevante ao estado da arte em compiladores
+   para arquiteturas RISC-V de baixa potência.
+
+3. Fundamentação para Trabalhos Futuros: A definição e validação
+   empírica de um novo artefato (o compilador otimizado) que preenche
+   as lacunas de desempenho e eficiência energética na plataforma PULP
+   servirá como um grupo de controle superior e ponto de partida para
+   futuras pesquisas e desenvolvimentos na área de hardware-software
+   co-design para computação de ultrabaixa potência.
+
+Em resumo, a Justificativa reside na urgência de eliminar um gargalo
+de software em uma plataforma de hardware crítica (PULP/RISC-V) e na
+promessa de que a intervenção proposta no compilador LLVM é o meio
+mais eficaz para alcançar uma melhoria objetiva e quantificável na
+eficiência energética global do sistema.
+
+* Metodologia de Pesquisa
+
+** Justificativa e Design Experimental
+
+- Variável Independente (Intervenção): É o *tratamento* aplicado ao
+  pipeline LLVM/OpenMP. Neste caso, a *introdução dos *passes* de
+  otimização para refinar o *data tiling* e a coerência TCDM/SPM.
+
+- Variáveis Dependentes (Observadas): Consistem naquilo que se quer
+  medir ou melhorar usando a comparação. As variáveis dependentes são:
+
+  1. Latência de *Offload* (Medida em Ciclos de Clock).
+  2. Eficiência Energética (Definida operacionalmente como Joules /
+     GFLOPs, representando a Energia Total Consumida por Operação de
+     Ponto Flutuante Útil).
+
+** Etapas do Procedimento Metodológico
+
+O Procedimento Metodológico está dividido nas seguintes fases
+principais, que juntas descrevem o caminho para atingir o objetivo e
+testar a hipótese:
+
+*** Fase 1: Revisão Sistemática da Literatura (RSL/MSL)
+
+O objetivo é *estabelecer o Estado da Arte* e garantir que a pesquisa
+preencha uma lacuna comprovada.
+
+- Definição da *Baseline* Tecnológica (Grupo Controle): A Revisão
+  Bibliográfica Sistemática deve definir rigorosamente o LLVM/OpenMP
+  padrão como o *Grupo Controle* para a comparação.
+- Identificação de *Benchmarks* e Lacunas: A revisão ajudará a
+  identificar *passes* de otimização relevantes e a definir *benchmarks*
+  representativos para a arquitetura PULP. A pesquisa utilizará
+  *benchmarks* sintéticos e reais, permitindo avaliar impactos tanto em
+  padrões de acesso simples quanto em cargas representativas de
+  aplicações embarcadas.
+
+*** Fase 2: Desenho e Implementação do Artefato
+
+Esta fase concentra-se na criação da intervenção que será avaliada.
+
+- Análise do *Overhead* (Baseline): Inicialmente, deve-se analisar o
+  *overhead* no *runtime* OpenMP padrão, conforme a estrutura prevista
+  para o trabalho.
+- Passes de Otimização no LLVM: O cerne do trabalho é o *Design do
+  *Pass* de Otimização LLVM especificamente para *Data Tiling* e o
+  desenvolvimento de ajustes no *runtime* OpenMP.
+- Mecanismos de Exploração da TCDM/SPM: Implementação de mecanismos
+  de sincronização e *coerência TCDM/SPM* para otimizar o uso da
+  memória local do cluster PULP.
+
+*** Fase 3: Experimentação Controlada
+
+Esta fase consiste na *execução dos *benchmarks* representativos
+(e.g., *kernels* de processamento de sinais/visão) no cluster PULP.
+
+- Coleta de Dados: Serão coletados dados das variáveis dependentes
+  (*Latência de *Offload* e *Eficiência Energética*) tanto para o
+  *Grupo Controle* (baseline LLVM/OpenMP) quanto para a *Solução
+  Proposta (Tratamento)*.
+- Rigor na Medição: É crucial que as medições de eficiência e latência
+  sejam realizadas com ferramentas de *profiling* para garantir a
+  precisão dos dados, conforme a definição operacional de
+  Joules/GFLOPs.
+
+*** Fase 4: Análise Estatística
+
+A análise dos resultados é fundamental para o teste de hipóteses.
+
+- Testes de Hipótese: Serão aplicados *testes estatísticos de hipótese
+  (e.g., Teste T)* para comprovar a *significância estatística* da
+  melhoria na eficiência energética e na redução da latência.
+- Comprovação: A comprovação de uma teoria empírica (como a hipótese
+  deste trabalho) exige o uso de estatística para obter
+  credibilidade. A análise deve incluir a aplicação do *Teste t* e, se
+  relevante, *análise de variância (ANOVA)* para comparar os
+  resultados da otimização com o *baseline*, determinando se a diferença
+  observada é significativa ou obra do acaso.
+
+* Estado da Arte
+
+*** Arquiteturas Heterogêneas de Ultra-Baixa Potência e o Ecossistema RISC-V
+
+O crescente desafio de manter o ritmo das demandas computacionais de
+*Machine Learning* (ML) e *Deep Neural Networks* (DNNs) impulsionou a
+adoção de sistemas de computação heterogênea (HeSoCs), que combinam
+processadores *host* de propósito geral com aceleradores programáveis ou
+dedicados para otimizar o desempenho e a eficiência. A arquitetura
+RISC-V se estabeleceu como um pilar fundamental nesta área devido à
+sua natureza aberta e extensível (*extensible ISA*), que permite o
+desenvolvimento de núcleos altamente especializados e de baixo
+consumo.
+
+O estado da arte em plataformas de ultra-baixa potência é representado
+por projetos como a *PULP Platform* (*Parallel Ultra-Low Power*), que
+desde 2013 se concentra em atingir um ponto operacional de baixa
+tensão e baixa frequência, compensando a perda de desempenho através
+de paralelismo e aceleração de hardware.
+
+- PULP Clusters e Snitch: Os *clusters* PULP, como o empregado na
+  arquitetura HEROv2, são organizados em torno de múltiplos núcleos
+  RISC-V (como o *Snitch* ou CV32E40P) que compartilham uma
+  *Tightly-Coupled Data Memory (TCDM)*, atuando como uma memória
+  *scratchpad* (SPM) gerenciada por software, contrastando com as
+  arquiteturas de memória coerente baseadas em *cache* do *host*. O núcleo
+  Snitch, em particular, é um processador *single-issue* e *in-order*
+  ultracompacto (cerca de 10 kGE), projetado para maximizar a relação
+  computação/controle, tornando a *Floating-Point Unit* (FPU) a parte
+  dominante em consumo de energia e área.
+
+- Extensões de ISA para Eficiência: Para alcançar a máxima eficiência,
+  as arquiteturas PULP utilizam extensões específicas da ISA RISC-V,
+  como a *Xpulp ISA* e as extensões *Stream Semantic Registers (SSRs)* e
+  *Floating-point Repetition Instruction (FREP)* do núcleo Snitch. Estas
+  extensões eliminam a sobrecarga de instruções de *load/store*
+  explícitas e de controle de *loop*, transformando o núcleo
+  *single-issue* em pseudo *dual-issue* a um custo mínimo. Esforços
+  recentes concentram-se em generalizar o FREP para suportar *loop
+  nests* e propor subsistemas de memória que eliminam conflitos (como o
+  *Dobu interconnect*), alcançando utilizações de FPU próximas do ideal
+  (entre 96.1% e 99.4%).
+
+***  Desafio do Tiling e do Gerenciamento de Memória Local
+
+Em arquiteturas que utilizam SPMs/TCDM em vez de *caches* coerentes, o
+gerenciamento explícito da movimentação de dados é essencial para a
+performance. O processo de *tiling* (divisão de dados em blocos menores
+que cabem na memória local) e a orquestração de transferências via
+*Direct Memory Access* (DMA) são tarefas críticas, difíceis e
+frequentemente manuais, que recaem sobre o programador.
+
+A programação manual para tiling e DMA introduz uma sobrecarga de
+esforço e manutenção considerável, aumentando a complexidade do código
+(*cyclomatic complexity*) e o número de linhas de código (*LOC*) em até
+*6.3×* para aplicações complexas como ~covar~. Além disso, o *tiling*
+manual é crucial para a performance: em uma avaliação, a execução em
+memória local com *tiling* manual resultou em um *speed-up* médio de
+*4.3×* sobre a execução diretamente na memória principal externa, com
+a sobrecarga de transferências DMA sendo tipicamente desprezível.
+
+*** Otimização de Compilador Baseada em LLVM para Tiling e DMA
+
+Para mitigar a complexidade da programação manual, o estado da arte
+busca transferir a responsabilidade do gerenciamento de memória local
+para a *toolchain* do compilador.
+
+- A Plataforma HEROv2 e o LLVM: Plataformas de pesquisa completas,
+  como a *HEROv2*, fornecem uma *toolchain* heterogênea baseada em *LLVM
+  9.0* (ou versões mais recentes) que suporta a compilação
+  *single-source, single-binary* via *OpenMP offloading*. O compilador
+  LLVM é crucial, pois permite a otimização específica do alvo e a
+  inferência de movimentos de dados.
+
+- AutoDMA para Tiling Automático: Uma solução avançada é o *plugin*
+  *AutoDMA*, uma extensão do compilador *device* do HEROv2. O AutoDMA
+  automatiza a análise do código-fonte para identificar regiões de
+  memória adequadas para serem organizadas em *stages* através das SPMs
+  e realiza a transformação do código para programar o motor DMA
+  automaticamente. O AutoDMA também é capaz de realizar o *loop tiling*
+  para extrair segmentos de código cujo *footprint* de memória se
+  encaixa no *local memory*.
+
+- Performance do AutoDMA: Em aplicações com alta localidade
+  espacial, o AutoDMA demonstrou ser altamente eficaz, oferecendo
+  *speed-ups* de até *4.4×* para código OpenMP não modificado e
+  alcançando *85%* da performance do código escrito à mão. Isso torna
+  as hierarquias de memória gerenciadas por software tão fáceis de
+  programar quanto seus equivalentes baseados em *cache*.
+
+- DORY e HTVM para DNNs: No contexto de *TinyML*, ferramentas de
+  implantação como *DORY* e *HTVM* (que funde TVM com DORY) abordam o
+  *tiling* como um problema de programação com restrições (*Constraint
+  Programming Problem*). O DORY é especializado em gerar código C para
+  *tiling* que minimiza o tráfego de memória em dispositivos *edge* com
+  memória L1 limitada. O HTVM estende isso para plataformas
+  heterogêneas com múltiplos aceleradores, utilizando o *tiling*
+  sensível ao hardware (*hardware-aware layer tiling*) para maximizar a
+  utilização de aceleradores e minimizar movimentos de dados.
+
+*** Suporte à Coerência de Memória e Modelos de Dados Mistos
+
+A complexidade dos HeSoCs é exacerbada pela necessidade de
+compartilhar dados entre *hosts* de 64 *bits* e aceleradores de 32 *bits*,
+além das diferenças entre memórias coerentes e não coerentes.
+
+- Mixed Data-Model (MDM) Compilation: A *toolchain* do HEROv2 resolve
+  essa limitação implementando o suporte a espaço de endereçamento
+  (Address Space) do LLVM. Isso permite que *pointers* de 64 *bits* do
+  *host* sejam representados corretamente no compilador do acelerador de
+  32 *bits*, definindo um *espaço de endereçamento nativo de 32 *bits* e
+  um espaço de endereçamento *host* de 64 *bits*. Extensões no *frontend*
+  Clang inferem automaticamente o espaço de endereçamento correto para
+  *pointers* passados do *host*.
+
+- Virtual Memory Sharing: Para o gerenciamento em tempo de execução,
+  o sistema utiliza uma *Hybrid IOMMU* que permite que o acelerador
+  compartilhe o espaço de endereço virtual do aplicativo em execução
+  no *host*. Isso é crucial, pois *pointers* podem ser passados sem
+  modificações, sem a necessidade de cópia de dados. Quando a *Unified
+  Virtual Memory* (UVM) está habilitada, acessos à memória remota (não
+  local ao acelerador) que acertam o *Translation Lookaside Buffer*
+  (TLB) da IOMMU incorrem em uma sobrecarga de apenas três ciclos por
+  acesso.
+
+Em suma, o estado da arte converge no desenvolvimento de *toolchains*
+robustas baseadas em LLVM (como HEROv2/AutoDMA e HTVM/DORY) que
+automatizam o *tiling* e o gerenciamento de DMA, enquanto o hardware de
+ultra-baixa potência (PULP/Snitch) implementa extensões de ISA e
+otimizações microarquiteturais para eliminar sobrecargas de controle
+de *loop* e conflitos de memória, garantindo alta eficiência energética
+e programabilidade.
+
+* Resultados e Contribuições Científicas Esperados
+
+O presente trabalho de Mestrado visa a geração de conhecimento e a
+inovação tecnológica no domínio da otimização de compiladores para
+arquiteturas heterogêneas de ultra-baixa potência, superando o esforço
+manual e a sobrecarga de complexidade introduzidos pela programação
+explícita de hierarquias de memória gerenciadas por software.
+
+** Contribuição Científica Principal (Geração de Conhecimento)
+
+A principal contribuição científica será a proposição e avaliação de
+um algoritmo de otimização de compilador, implementado como um *pass* no
+LLVM, que automatiza de forma mais eficiente e robusta o *tiling* de
+laços (*loop tiling*) e a inferência de transferências de dados (*Direct
+Memory Access - DMA*) para a memória local (SPM/TCDM) em aceleradores
+programáveis, como *clusters* RISC-V de baixa potência.
+
+Especificamente, o trabalho buscará avançar o estado da arte existente
+(como a funcionalidade AutoDMA):
+
+- Superação da Localidade Espacial Limitada: Desenvolver o *pass* para
+  otimizar e gerar código de *tiling* que mantenha alta eficiência e
+  utilize a largura de banda do DMA mesmo em aplicações com baixa
+  localidade espacial (e.g., acessos por coluna ou *scatter-gather*
+  complexos). Este é um desafio conhecido onde soluções existentes
+  baseadas em LLVM (AutoDMA) apresentam desempenho marginal.
+- Aproveitamento Máximo de ISA Extensions: Demonstrar a integração
+  eficiente do *tiling* automático com extensões microarquiteturais de
+  ultra-baixa latência. Espera-se que o *pass* seja capaz de inferir e
+  gerar o código necessário para explorar as extensões de *hardware
+  loop* de zero-overhead (*zero-overhead loop nests*) e acessos de
+  memória com pós-incremento (*post-increment memory accesses*) (e.g.,
+  extensões FREP e Xpulpv2/Xpulpnn).
+- Avaliação de Novo Subsistema de Memória: Fornecer *insights*
+  quantitativos sobre a interação da otimização de *tiling* do
+  compilador com novos subsistemas de memória, como o *interconnect*
+  Dobu (*Double-buffering-aware interconnect*) proposto para eliminar
+  conflitos bancários (*bank conflicts*) e melhorar o *double buffering*
+  em ambientes com DMA e múltiplos *cores*.
+
+** Contribuições Técnicas e Tecnológicas (O Artefato)
+
+O principal artefato do projeto será:
+
+- Um *Pass* de Otimização no LLVM (*LLVM Compiler Pass*): Um componente de
+  *software* de código aberto integrado à *toolchain* heterogênea (e.g.,
+  HEROv2/HeroSDK) que realiza o *tiling* de laços e a geração automática
+  de chamadas de API DMA (semelhante ao ~hero_memcpy_2d~ ou funções de
+  alocação de memória local, como ~hero_l1_malloc~).
+- Suporte a Mixed Data-Model (MDM): A solução técnica deve ser
+  compatível com o ambiente heterogêneo misto, mantendo a capacidade
+  da *toolchain* de compilar *single-source, single-binary* para *hosts* de
+  64 *bits* (e.g., ARMv8 ou RV64) e aceleradores de 32 *bits* (e.g.,
+  Snitch).
+- Integração com Ferramentas de Disposição (Deployment): O artefato
+  deverá ser compatível com *frameworks* de *deployment* para DNNs (como
+  DORY/HTVM), estendendo sua capacidade de otimizar o *tiling* para a
+  memória L1 de aceleradores, baseando-se em heurísticas
+  (*hardware-aware*) para maximizar a utilização dos aceleradores e
+  minimizar o movimento de dados.
+
+** Resultados Esperados (Pós-Pesquisa)
+
+Caso a hipótese seja comprovada, os resultados esperados demonstram um
+avanço no desempenho e na produtividade em relação ao estado da arte
+em automação de *tiling* (Nível 5.4 - Algo Reconhecidamente Melhor):
+
+- Performance Próxima à Implementação Manual: O código gerado pelo
+  compilador para o *tiling* e DMA deverá atingir um desempenho igual ou
+  superior a **90%** da performance de implementações otimizadas à mão
+  (*handwritten code*), superando a média de **85%** alcançada por
+  soluções anteriores.
+- Redução Drástica da Sobrecarga de Código: O uso da otimização de
+  compilador deve exigir **zero alterações de código** para implementar
+  o *tiling*, eliminando a necessidade de reescrita manual que, em
+  média, aumenta a complexidade ciclomática em **1.8×** e o número de
+  linhas de código (LOC) em **2.6×** (podendo chegar a **6.3×** para
+  aplicações como `covar`).
+- Alta Utilização de Hardware: Demonstrar que o *tiling* otimizado em
+  conjunto com as extensões de ISA leva a uma utilização da
+  *Floating-Point Unit* (FPU) próxima do ideal, com taxas de utilização
+  consistentemente entre **96.1% e 99.4%** em kernels de processamento
+  intensivo (e.g., *matrix multiplication* - matmul).
+- Facilidade de Programação: Atingir a meta de tornar as hierarquias
+  de memória gerenciadas por *software* tão fáceis de programar quanto
+  as baseadas em *hardware cache*.
+
+** Disseminação dos Resultados
+
+Os resultados da pesquisa serão ativamente disseminados através de
+canais acadêmicos e de código aberto:
+
+- Publicação Acadêmica: Submissão de um artigo (ou mais) a um
+  periódico ou conferência de alto impacto na área de arquitetura de
+  computadores, compiladores ou sistemas embarcados (e.g., IEEE
+  T. VLSI, DAC, ICCAD).
+- Open-Source Release: O código-fonte do *pass* de otimização LLVM e dos
+  *benchmarks* de avaliação será liberado sob uma licença permissiva
+  (e.g., Apache 2.0, Solderpad) no ecossistema PULP-Platform/HeroSDK
+  no GitHub, seguindo o modelo de *open-source hardware* e *software* da
+  comunidade RISC-V.
+- Dissertação de Mestrado: Conclusão do trabalho acadêmico
+  (Dissertação) documentando a metodologia, implementação e análise de
+  resultados.
+
+* Referências
