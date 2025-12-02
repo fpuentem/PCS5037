@@ -10,20 +10,23 @@
 O avanço recente das aplicações de inteligência artificial embarcada,
 sistemas IoT e dispositivos autônomos tem intensificado a necessidade
 por arquiteturas computacionais capazes de oferecer alto desempenho
-aliado a consumo energético extremamente reduzido [cite:@colagrande2025zerostallmatrixmultiplicationenergyefficient]. Nesse cenário,
-arquiteturas *Ultra-Low-Power (ULP)* tornam-se essenciais para
+aliado a consumo energético extremamente reduzido
+[cite:@colagrande2025zerostallmatrixmultiplicationenergyefficient]. Nesse
+cenário, arquiteturas *Ultra-Low-Power (ULP)* tornam-se essenciais para
 viabilizar aplicações que operam sob severas restrições de energia,
 como wearables, sensores inteligentes, sistemas de controle
-distribuído e aceleradores de machine learning em *edge devices* [cite:@smith2021energyawarecompilers].
+distribuído e aceleradores de machine learning em *edge devices*
+[cite:@smith2021energyawarecompilers].
 
-A plataforma *PULP (Parallel Ultra-Low-Power)*, desenvolvida por meio
-de colaborações entre a ETH Zürich e a Universidade de Bolonha,
-insere-se exatamente nesse espaço tecnológico[cite:@pulp2024]. Baseada na arquitetura
-*RISC-V* e concebida para suportar paralelismo massivo a baixo custo
-energético, a plataforma PULP incorpora um conjunto de características
-arquiteturais — como clusters multi-core, memória local de baixa
-latência (TCDM/SPM) e mecanismos otimizados de comunicação — que lhe
-permitem atingir excelente relação desempenho-por-watt.
+A plataforma *PULP (Parallel Ultra-Low-Power)*, desenvolvida por meio de
+colaborações entre a ETH Zürich e a Universidade de Bolonha, insere-se
+exatamente nesse espaço tecnológico[cite:@pulp2024]. Baseada na
+arquitetura *RISC-V* e concebida para suportar paralelismo massivo a
+baixo custo energético, a plataforma PULP incorpora um conjunto de
+características arquiteturais — como clusters multi-core, memória
+local de baixa latência (TCDM/SPM) e mecanismos otimizados de
+comunicação — que lhe permitem atingir excelente relação
+desempenho-por-watt.
 
 Entretanto, para que tais vantagens arquiteturais produzam impacto
 real no nível da aplicação, torna-se essencial que o *ambiente de
@@ -60,7 +63,8 @@ especialmente no que diz respeito à utilização da *TCDM (Tightly
 Coupled Data Memory)*, que oferece latência significativamente
 inferior à memória externa.
 
-A solução dominante (LLVM + OpenMP padrão) [cite:@llvmfoundation2024llvmguide]*não incorpora mecanismos
+A solução dominante (LLVM + OpenMP padrão)
+[cite:@llvmfoundation2024llvmguide]*não incorpora mecanismos
 suficientemente refinados* para explorar a organização da memória
 local do cluster PULP. O pipeline de compilação atual tampouco realiza
 estratégias de *data tiling* ou coerência fina entre host e TCDM,
@@ -71,8 +75,9 @@ ativação do cluster [cite:@porpodas2021superoptimizations].
 Dessa forma, torna-se evidente uma oportunidade de pesquisa:
 investigar até que ponto a introdução de passes de otimização no
 compilador, aliados a modificações no runtime do OpenMP, pode reduzir
-de maneira mensurável o overhead do offloading — e, portanto,
-melhorar a eficiência energética end-to-end do sistema [cite:@tvm;@williams2020tilingmemoryhierarchy].
+de maneira mensurável o overhead do offloading — e, portanto, melhorar
+a eficiência energética end-to-end do sistema
+[cite:@tvm;@williams2020tilingmemoryhierarchy].
 
 Essa lacuna apresenta relevância imediata tanto para a comunidade de
 arquitetura computacional quanto para a comunidade de compiladores,
@@ -82,9 +87,10 @@ A pesquisa é guiada pela seguinte hipótese:
 
 A introdução de passes de otimização no LLVM voltados para o
 refinamento do *data tiling* e para a coerência de memória entre o host
-RISC-V [cite:@lee2020domain; @meng2019compilerspecialization] e o cluster PULP reduzirá significativamente a latência de
-offloading e aumentará a eficiência energética global, em comparação
-com a configuração padrão do LLVM/OpenMP.
+RISC-V [cite:@lee2020domain; @meng2019compilerspecialization] e o
+cluster PULP reduzirá significativamente a latência de offloading e
+aumentará a eficiência energética global, em comparação com a
+configuração padrão do LLVM/OpenMP.
 
 Essa hipótese será avaliada experimentalmente por meio de métricas
 objetivas e testes estatísticos.
