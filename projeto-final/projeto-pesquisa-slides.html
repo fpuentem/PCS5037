@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Otimização de Compilador LLVM para Arquiteturas ULP</title>
+<meta name="author" content="Fabricio R. Puente Mansilla"/>
+<meta name="description" content=""/>
+<meta name="keywords" content=""/>
+<style type="text/css">
+.underline { text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js/dist/reveal.css"/>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js/dist/theme/beige.css" id="theme"/>
+
+
+<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+<script>
+    if( window.location.search.match( /print-pdf/gi ) ) {
+        var link = document.createElement( 'link' );
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = 'https://cdn.jsdelivr.net/npm/reveal.js/css/print/pdf.css';
+        document.getElementsByTagName( 'head' )[0].appendChild( link );
+    }
+</script>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+<section id="sec-title-slide"><h2>Otimização de Compilador LLVM para Arquiteturas ULP</h2> <h3>Proposta de Pesquisa de Mestrado</h3> <p>Fabricio R. Puente Mansilla</p> <p>Orientador: Dr. Bruno Cavalcante de Souza Sanches</p>
+</section>
+<section>
+<section id="slide-org9d4b623">
+<h2 id="org9d4b623"><span class="section-number-2">1.</span> O Desafio da Ultrabaixa Potência (ULP)</h2>
+<div class="outline-text-2" id="text-1">
+</div>
+</section>
+<section id="slide-org6ffc21f">
+<h3 id="org6ffc21f"><span class="section-number-3">1.1.</span> Cenário:</h3>
+<p>
+Crescimento de IA embarcada, IoT e Edge Computing exige alto desempenho com consumo mínimo de energia.
+</p>
+</section>
+<section id="slide-org2c72660">
+<h3 id="org2c72660"><span class="section-number-3">1.2.</span> Solução de Hardware:</h3>
+<p>
+Arquiteturas Heterogêneas RISC-V (ex: PULP Platform).
+</p>
+
+<ul>
+<li>Paralelismo massivo.</li>
+
+<li>Memória local rápida (TCDM/SPM) em vez de caches tradicionais.</li>
+
+</ul>
+</section>
+<section id="slide-org7e04b87">
+<h3 id="org7e04b87"><span class="section-number-3">1.3.</span> O Problema:</h3>
+<p>
+O hardware é eficiente, mas o <b>software</b> (compiladores/runtimes) não acompanha.
+</p>
+</section>
+</section>
+<section>
+<section id="slide-org5978612">
+<h2 id="org5978612"><span class="section-number-2">2.</span> O Gargalo do OpenMP e LLVM Padrão</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+</section>
+<section id="slide-orgd25b5a3">
+<h3 id="orgd25b5a3"><span class="section-number-3">2.1.</span> Modelo Atual:</h3>
+<p>
+OpenMP é usado para produtividade, mas o <b>task offloading</b> é caro.
+</p>
+</section>
+<section id="slide-org6f99f68">
+<h3 id="org6f99f68"><span class="section-number-3">2.2.</span> Dados:</h3>
+<p>
+O custo de comunicação Host-Cluster pode chegar a <b>98.000 ciclos de clock</b>.
+</p>
+</section>
+<section id="slide-org423cdb3">
+<h3 id="org423cdb3"><span class="section-number-3">2.3.</span> Limitação do LLVM:</h3>
+<ul>
+<li>Não realiza <b>Data Tiling</b> automático eficiente para TCDM.</li>
+<li>Gera transferências excessivas e sincronizações desnecessárias.</li>
+<li>O <b>offloading</b> pode gastar mais energia que a execução sequencial.</li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-org1179654">
+<h2 id="org1179654"><span class="section-number-2">3.</span> Proposta de Solução</h2>
+<div class="outline-text-2" id="text-3">
+</div>
+</section>
+<section id="slide-org024c0cc">
+<h3 id="org024c0cc"><span class="section-number-3">3.1.</span> Hipótese:</h3>
+<p>
+Passes de otimização no LLVM para <b>Data Tiling</b> e Coerência reduzirão a latência e aumentarão a eficiência energética (Joules/GFLOPs).
+</p>
+</section>
+<section id="slide-orgc8cc24a">
+<h3 id="orgc8cc24a"><span class="section-number-3">3.2.</span> Objetivo Geral:</h3>
+<p>
+Desenvolver um <b>Compiler Pass</b> no LLVM que automatize o uso da memória TCDM/SPM.
+</p>
+</section>
+<section id="slide-orge28b00c">
+<h3 id="orge28b00c"><span class="section-number-3">3.3.</span> A Inovação:</h3>
+<ul>
+<li>Substituir otimização manual por automática.</li>
+<li>Intervenção direta no pipeline de compilação, sem alterar o código do usuário.</li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-orgeb0471d">
+<h2 id="orgeb0471d"><span class="section-number-2">4.</span> Etapas da Pesquisa</h2>
+<div class="outline-text-2" id="text-4">
+</div>
+</section>
+<section id="slide-org2392644">
+<h3 id="org2392644"><span class="section-number-3">4.1.</span> Revisão Sistemática (RSL):</h3>
+<p>
+Definir o <b>baseline</b> (LLVM/OpenMP padrão) e benchmarks.
+</p>
+</section>
+<section id="slide-orged80c2d">
+<h3 id="orged80c2d"><span class="section-number-3">4.2.</span> Design do Artefato:</h3>
+<p>
+Implementação dos passes no LLVM para Tiling e ajustes no Runtime OpenMP.
+</p>
+</section>
+<section id="slide-org603649b">
+<h3 id="org603649b"><span class="section-number-3">4.3.</span> Experimentação Controlada:</h3>
+<ul>
+<li>Variáveis: Latência de Offload (Ciclos) e Eficiência Energética (Joules/GFLOPs).</li>
+<li>Comparação: Solução Proposta <b>vs</b> Grupo de Controle (Baseline).</li>
+
+</ul>
+</section>
+<section id="slide-orgcf202be">
+<h3 id="orgcf202be"><span class="section-number-3">4.4.</span> Análise Estatística:</h3>
+<p>
+Uso de Teste T para validar a significância dos resultados.
+</p>
+</section>
+</section>
+<section>
+<section id="slide-orgb4abe92">
+<h2 id="orgb4abe92"><span class="section-number-2">5.</span> Avançando Além do Estado da Arte</h2>
+<div class="outline-text-2" id="text-5">
+</div>
+</section>
+<section id="slide-org0f8cc43">
+<h3 id="org0f8cc43"><span class="section-number-3">5.1.</span> Atual (AutoDMA/HEROv2):</h3>
+<p>
+Funciona bem para alta localidade espacial, mas falha em acessos complexos.
+</p>
+</section>
+<section id="slide-org1a66462">
+<h3 id="org1a66462"><span class="section-number-3">5.2.</span> Diferencial da Proposta:</h3>
+<ul>
+<li>Suporte a Baixa Localidade: Otimização para acessos irregulares (scatter-gather).</li>
+<li>Hardware-Aware: Uso de extensões de ISA (Zero-Overhead Loops, Post-Increment).</li>
+<li>Integração: Compatível com ferramentas de <b>deployment</b> de DNNs (DORY/HTVM).</li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-org3febadf">
+<h2 id="org3febadf"><span class="section-number-2">6.</span> Impacto e Contribuições</h2>
+<div class="outline-text-2" id="text-6">
+</div>
+</section>
+<section id="slide-org794987d">
+<h3 id="org794987d"><span class="section-number-3">6.1.</span> Performance:</h3>
+<p>
+Atingir 90% do desempenho de código manual (acima da média atual de 85%).
+</p>
+</section>
+<section id="slide-org6b3cf05">
+<h3 id="org6b3cf05"><span class="section-number-3">6.2.</span> Produtividade:</h3>
+<p>
+Zero alterações no código fonte do usuário (vs. aumento de 2.6x em LOC manual).
+</p>
+</section>
+<section id="slide-org59785b9">
+<h3 id="org59785b9"><span class="section-number-3">6.3.</span> Utilização de FPU:</h3>
+<p>
+Manter a unidade de ponto flutuante ocupada (96% - 99%).
+</p>
+</section>
+<section id="slide-orga4e722b">
+<h3 id="orga4e722b"><span class="section-number-3">6.4.</span> Entregáveis:</h3>
+<ul>
+<li>Pass de Otimização LLVM (Open Source).</li>
+<li>Artigo em conferência de alto impacto (DAC, ICCAD).</li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-orgfcf9470">
+<h2 id="orgfcf9470"><span class="section-number-2">7.</span> Conclusão</h2>
+<ul>
+<li>A pesquisa ataca a tensão entre <b>conveniência do OpenMP</b> e <b>eficiência ULP</b>.</li>
+<li>Intervenção no compilador é o meio mais eficaz para ganho sistêmico.</li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-orgf3c5e09">
+<h2 id="orgf3c5e09"><span class="section-number-2">8.</span> Perguntas?</h2>
+</section>
+</section>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js/dist/reveal.js"></script>
+
+<script>
+// Full list of configuration options available here:
+// https://github.com/hakimel/reveal.js#configuration
+Reveal.initialize({
+
+// Optional libraries used to extend on reveal.js
+dependencies: [
+ { src: 'https://cdn.jsdelivr.net/npm/reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+ { src: 'https://cdn.jsdelivr.net/npm/reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+ { src: 'https://cdn.jsdelivr.net/npm/reveal.js/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+ { src: 'https://cdn.jsdelivr.net/npm/reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }]
+
+});
+
+</script>
+</body>
+</html>
